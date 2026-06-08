@@ -110,6 +110,7 @@ textarea.fi{min-height:76px;resize:none}
 .tog input:checked~.tog-thumb{transform:translateX(20px)}
 .submit-btn{width:100%;padding:15px;background:var(--blue);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px}
 .submit-btn:active{background:var(--blue-d)}
+.submit-btn:disabled{background:var(--gray2);cursor:not-allowed}
 .calc-preview{background:var(--green-l);border-radius:12px;padding:12px 14px;margin-bottom:14px}
 .calc-amount{font-size:26px;font-weight:700;color:var(--green-d)}
 .calc-detail{font-size:12px;color:var(--green-d);margin-top:2px;opacity:.8}
@@ -157,6 +158,7 @@ textarea.fi{min-height:76px;resize:none}
     <div class="navbar-sub" id="navbar-sub"></div>
   </div>
   <div class="nav-actions">
+    <button class="nav-btn" onclick="loadAllData(true)" style="background:var(--green-l);color:var(--green-d)">🔄</button>
     <button class="nav-btn" onclick="exportExcel()">📊 匯出</button>
     <button class="nav-btn" onclick="exportYear()">📅 年報</button>
   </div>
@@ -482,7 +484,7 @@ textarea.fi{min-height:76px;resize:none}
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbxUCTV4SFFRomtLyb1NDQfZaI7m-t_1MDTLgPrzJFmRMWLuKnivOaFc3_2D75fCoi8/exec';
+const API_URL='https://script.google.com/macros/s/AKfycbw5qtldnDD7LjWOCyuP_tljazoHIz87vtWJKDST7E5j7JqhLWbgWL0KDb4np-2q-Zyx/exec';
 let currentMonth='',editingId=null,editingType=null;
 let actionId=null,actionType=null;
 let curStaffId=null,selectedDays=1;
@@ -490,6 +492,7 @@ let cache={staff:null,months:{}};
 // 貨品大項（預設＋自訂）
 let vendorCats=JSON.parse(localStorage.getItem('vendorCats')||'["雜項","設備","材料"]');
 let selectedCat='';
+let isSaving=false; // 防重複提交
 
 // ── Sync ──
 function setSyncStatus(state,msg){
@@ -500,9 +503,9 @@ function setSyncStatus(state,msg){
 }
 
 async function apiGet(type,month){
-  let url=API_URL+'?type='+type+'&cb='+Date.now();
+  let url=API_URL+'?type='+type+'&cb='+Date.now()+'&r='+Math.random().toString(36).slice(2);
   if(month)url+='&month='+month;
-  const res=await fetch(url,{method:'GET',redirect:'follow',mode:'cors',credentials:'omit'});
+  const res=await fetch(url,{method:'GET',redirect:'follow',mode:'cors',credentials:'omit',cache:'no-store'});
   const json=JSON.parse(await res.text());
   if(!json.success)throw new Error(json.error||'read error');
   return json.data||[];
@@ -521,11 +524,11 @@ async function apiDelete(type,id){
   if(!json.success)throw new Error(json.error||'delete error');
 }
 
-async function loadAllData(){
+async function loadAllData(forceRefresh=false){
   setSyncStatus('syncing');
   try{
     const[staff,employees,vendors,owners,purchInvs,salesInvs,journals]=await Promise.all([
-      cache.staff?Promise.resolve(cache.staff):apiGet('staff'),
+      (cache.staff&&!forceRefresh)?Promise.resolve(cache.staff):apiGet('staff'),
       apiGet('employees',currentMonth),
       apiGet('vendors',currentMonth),
       apiGet('owners',currentMonth),
@@ -536,6 +539,7 @@ async function loadAllData(){
     cache.staff=staff;
     cache.months[currentMonth]={employees,vendors,owners,purchInvs,salesInvs,journals};
     setSyncStatus('ok');renderAll();
+    if(forceRefresh)toast('✅ 資料已更新！');
   }catch(e){
     setSyncStatus('error',e.message);renderAll();toast('⚠️ 讀取失敗，顯示本機資料');
   }
@@ -553,12 +557,15 @@ function setM(t,a){
 }
 
 async function doSave(type,rec){
+  if(isSaving){toast('⏳ 儲存中，請勿重複操作');return}
+  isSaving=true;
   setSyncStatus('syncing');
   if(type==='staff'){let a=getStaff();const i=a.findIndex(x=>x.id===rec.id);if(i>=0)a[i]=rec;else a.push(rec);setStaff(a)}
   else{let a=getM(type);const i=a.findIndex(x=>x.id===rec.id);if(i>=0)a[i]=rec;else a.push(rec);setM(type,a)}
   renderAll();
   try{await apiSave(type,rec);setSyncStatus('ok')}
   catch(e){setSyncStatus('error',e.message);toast('⚠️ 雲端儲存失敗，請稍後重試')}
+  finally{isSaving=false}
 }
 async function cloudDelete(type,id){
   if(type==='staff')setStaff(getStaff().filter(x=>x.id!==id));
@@ -802,7 +809,7 @@ function editJournal(id){
   document.getElementById('journalSheet').classList.add('open');
 }
 
-// ── 廠商叫貨 ──
+// ── 支出項目 ──
 function saveVendor(){
   if(!selectedCat){alert('請選擇支出大項');return}
   const rec={id:editingId||uid(),month:currentMonth,date:document.getElementById('v-date').value,vendor:'',cat:selectedCat,desc:document.getElementById('v-desc').value.trim(),amount:Number(document.getElementById('v-amount').value)||0,remark:document.getElementById('v-remark').value.trim()};

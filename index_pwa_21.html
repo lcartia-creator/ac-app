@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1A1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="空調管理">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>空調工程管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F7F8FA;--card:#FFFFFF;--border:#EAECF0;
+  --blue:#2563EB;--blue-l:#EFF6FF;--blue-d:#1D4ED8;
+  --green:#16A34A;--green-l:#F0FDF4;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --orange:#EA580C;--orange-l:#FFF7ED;
+  --purple:#7C3AED;--purple-l:#F5F3FF;
+  --gray:#6B7280;--gray2:#9CA3AF;--gray3:#E5E7EB;
+  --text1:#111827;--text2:#374151;--text3:#6B7280;
+  --safe-top:env(safe-area-inset-top,44px);
+  --safe-bottom:env(safe-area-inset-bottom,20px);
+  --radius:14px;--shadow:0 1px 4px rgba(0,0,0,.07);--shadow2:0 4px 24px rgba(0,0,0,.10);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Noto Sans TC',sans-serif;color:var(--text1);-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;height:100dvh}
+
+/* ── Navbar ── */
+.navbar{background:#fff;border-bottom:1px solid var(--border);padding:calc(var(--safe-top) + 2px) 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:50}
+.navbar-left h1{font-size:16px;font-weight:700;color:var(--text1)}
+.navbar-left .sub{font-size:11px;color:var(--gray);margin-top:1px}
+.sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--gray2)}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+.sync-dot.loading{background:var(--orange);animation:pulse 1s infinite}
+.sync-dot.offline{background:var(--orange);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-btns{display:flex;gap:6px}
+.nav-btn{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit}
+.nav-btn-outline{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+.nav-btn-blue{background:var(--blue);color:#fff}
+
+/* ── Month Bar ── */
+.monthbar{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:20px;padding:9px;flex-shrink:0}
+.month-arrow{width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.month-label{font-size:15px;font-weight:700;min-width:90px;text-align:center}
+
+/* ── Tabs ── */
+.tabbar{background:#fff;border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);flex-shrink:0}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 3px;cursor:pointer;border:none;background:none;color:var(--gray2);font-family:inherit;transition:color .15s}
+.tab-btn.active{color:var(--blue)}
+.tab-icon{font-size:22px;line-height:1;margin-bottom:2px}
+.tab-label{font-size:10px;font-weight:500}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.page{display:none;padding:14px 14px 32px}
+.page.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.card-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-title{font-size:13px;font-weight:700;color:var(--text2)}
+.sec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:16px}
+.sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.sec-label #receivable-total{color:var(--red);font-weight:700;text-transform:none;letter-spacing:normal}
+.add-btn{background:var(--blue);color:#fff;border:none;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.add-btn:active{background:var(--blue-d)}
+.add-btn:disabled{background:var(--gray2);cursor:not-allowed}
+
+/* ── Stats Grid ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:12px 14px;box-shadow:var(--shadow)}
+.stat-label{font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:500}
+.stat-value{font-size:22px;font-weight:700;line-height:1.1}
+.stat-value.blue{color:var(--blue)}.stat-value.green{color:var(--green)}.stat-value.red{color:var(--red)}.stat-value.orange{color:var(--orange)}
+
+/* ── List Items ── */
+.list-item{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .1s;-webkit-user-select:none}
+.list-item:last-child{border-bottom:none}
+.list-item:active{background:var(--bg)}
+.item-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ic-blue{background:var(--blue-l)}.ic-green{background:var(--green-l)}.ic-orange{background:var(--orange-l)}.ic-red{background:var(--red-l)}.ic-purple{background:var(--purple-l)}
+.item-body{flex:1;min-width:0}
+.item-title{font-size:14px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sub{font-size:11px;color:var(--gray);margin-top:2px}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.item-amount{font-size:14px;font-weight:700}
+.amt-green{color:var(--green)}.amt-red{color:var(--red)}.amt-blue{color:var(--blue)}
+.badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-green{background:var(--green-l);color:var(--green)}.badge-blue{background:var(--blue-l);color:var(--blue)}.badge-orange{background:var(--orange-l);color:var(--orange)}.badge-gray{background:var(--gray3);color:var(--gray)}
+
+/* ── Empty State ── */
+.empty{text-align:center;padding:40px 20px;color:var(--gray2)}
+.empty-icon{font-size:40px;opacity:.5;margin-bottom:8px}
+.empty-text{font-size:13px}
+
+/* ── Overlay & Sheet ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom)+8px)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--gray3);margin:10px auto 0}
+.sheet-hdr{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.sheet-title{font-size:16px;font-weight:700}
+.sheet-close{width:28px;height:28px;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sheet-body{padding:16px}
+
+/* ── Form ── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fl{font-size:13px;font-weight:500;color:var(--text2)}
+.fi{width:100%;padding:11px 13px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text1);font-family:inherit;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+.fi:focus{border-color:var(--blue);background:#fff}
+textarea.fi{min-height:72px;resize:none;line-height:1.5}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.submit-btn{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;transition:background .15s}
+.submit-btn:active{background:var(--blue-d)}
+.submit-btn:disabled{background:var(--gray2);cursor:not-allowed}
+.del-btn{width:100%;padding:12px;background:var(--red-l);color:var(--red);border:1px solid var(--red);border-radius:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:8px}
+
+/* ── Days selector ── */
+.days-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
+.day-opt{padding:12px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-weight:600;color:var(--text3);cursor:pointer;text-align:center;font-family:inherit;transition:all .15s}
+.day-opt.sel{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.days-row-5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:0}
+.day-opt-sm{padding:9px 2px;font-size:12px;border-radius:8px}
+
+/* ── Journal staff attendance ── */
+.j-staff-row{margin-bottom:10px}
+.j-staff-row:last-child{margin-bottom:0}
+.j-staff-name{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:5px}
+
+/* ── Cat buttons ── */
+.cat-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.cat-opt{padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .15s}
+.cat-opt.sel{border-color:var(--blue);background:var(--blue);color:#fff}
+
+/* ── Toggle ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:10px;padding:11px 13px;margin-bottom:12px}
+.tog{position:relative;width:48px;height:28px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-track{position:absolute;inset:0;border-radius:28px;background:var(--gray3);cursor:pointer;transition:background .2s}
+.tog input:checked+.tog-track{background:var(--green)}
+.tog-thumb{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .2s;pointer-events:none}
+.tog input:checked~.tog-thumb{transform:translateX(20px)}
+
+/* ── Calendar mini ── */
+.mini-cal{padding:14px 16px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-title{font-size:14px;font-weight:700}
+.cal-nav{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.cal-dow{font-size:10px;font-weight:600;color:var(--gray);padding:4px 0}
+.cal-day{font-size:12px;padding:6px 2px;border-radius:8px;cursor:pointer;font-weight:500;color:var(--text3)}
+.cal-day.today{background:var(--blue-l);color:var(--blue);font-weight:700}
+.cal-day.worked{background:var(--green-l);color:var(--green);font-weight:700}
+.cal-day.worked-half{background:var(--orange-l);color:var(--orange);font-weight:700}
+.cal-day.other-month{opacity:.3}
+.cal-day:active{opacity:.7}
+
+/* ── Search ── */
+.search-bar{display:flex;gap:8px;background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:10px 13px;margin-bottom:10px;box-shadow:var(--shadow)}
+.search-bar input{flex:1;border:none;outline:none;font-size:14px;font-family:inherit;background:transparent;color:var(--text1)}
+.search-bar input::placeholder{color:var(--gray2)}
+.search-result{background:#fff;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;overflow:hidden;display:none;box-shadow:var(--shadow)}
+.search-hdr{padding:10px 14px;background:var(--blue-l);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.search-hdr-title{font-size:12px;font-weight:700;color:var(--blue)}
+.search-close{background:none;border:none;color:var(--blue);font-size:18px;cursor:pointer;padding:0 4px}
+mark{background:#FEF08A;border-radius:3px;padding:0 2px}
+
+/* ── Finance ── */
+.fin-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+.fin-row:last-child{border-bottom:none}
+.fin-row.total{font-weight:700;font-size:15px}
+.fin-label{color:var(--text3)}
+.fin-alert{border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;font-weight:600}
+.fin-alert.red{background:var(--red-l);color:var(--red)}
+.fin-alert.green{background:var(--green-l);color:var(--green)}
+
+/* ── Action Sheet ── */
+.action-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end}
+.action-overlay.open{display:flex}
+.action-sheet{width:100%;padding:0 12px calc(var(--safe-bottom)+12px)}
+.action-group{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:8px}
+.action-btn{padding:15px;font-size:16px;color:var(--blue);border:none;border-bottom:1px solid var(--border);width:100%;background:none;font-family:inherit;cursor:pointer;text-align:center}
+.action-btn:last-child{border-bottom:none}
+.action-btn.danger{color:var(--red)}
+.action-cancel{background:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:600;color:var(--blue);text-align:center;cursor:pointer;border:none;width:100%;font-family:inherit}
+
+/* ── Cat Manager ── */
+.cat-manage-item{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.cat-manage-item:last-child{border-bottom:none}
+.cat-manage-input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+.cat-manage-input:focus{border-color:var(--blue)}
+.cat-save-btn{padding:7px 12px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.cat-del-btn{padding:7px 10px;background:var(--red-l);color:var(--red);border:1px solid var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit}
+
+/* ── Payout table ── */
+.payout-row{display:flex;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center}
+.payout-row:last-child{border-bottom:none}
+.pc{flex:1;font-size:13px;color:var(--text2)}
+.pc.hd{font-weight:700;font-size:11px;color:var(--gray);text-transform:uppercase}
+.pc.name{font-weight:600;font-size:14px;flex:1.4}
+.pc.r{text-align:right}
+.pc.r.green{color:var(--green);font-weight:700}
+.pc.r.red{color:var(--red);font-weight:700}
+
+/* ── Salary preview ── */
+.sal-preview{background:var(--green-l);border-radius:10px;padding:12px 14px;margin-bottom:14px;border:1px solid #BBF7D0}
+.sal-amount{font-size:26px;font-weight:700;color:var(--green)}
+.sal-detail{font-size:11px;color:var(--green);opacity:.8;margin-top:2px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 70px);left:50%;transform:translateX(-50%) translateY(8px);background:rgba(17,24,39,.88);color:#fff;border-radius:20px;padding:9px 20px;font-size:13px;font-weight:500;z-index:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Email block ── */
+.email-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+
+@media print{.navbar,.monthbar,.tabbar,.add-btn,.nav-btns{display:none}.page.active{display:block}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Navbar -->
+<div class="navbar">
+  <div class="navbar-left">
+    <h1>🌀 空調工程管理</h1>
+    <div class="sub"><span class="sync-dot" id="sync-dot"></span><span id="sync-text">連線中...</span>　<span id="month-sub"></span></div>
+  </div>
+  <div class="nav-btns">
+    <button class="nav-btn nav-btn-outline" onclick="manualRefresh()" id="refresh-btn" title="重新整理">🔄</button>
+    <button class="nav-btn nav-btn-outline" onclick="exportMonth()">📊 匯出</button>
+    <button class="nav-btn nav-btn-blue" onclick="exportYear()">📅 年報</button>
+  </div>
+</div>
+
+<!-- Month Bar -->
+<div class="monthbar">
+  <button class="month-arrow" onclick="changeMonth(-1)">‹</button>
+  <div class="month-label" id="monthLabel"></div>
+  <button class="month-arrow" onclick="changeMonth(1)">›</button>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- PAGE: 員工薪資 -->
+  <div class="page active" id="page-emp">
+    <div id="emp-stats" class="stats-grid"></div>
+    <div class="sec-row">
+      <div class="sec-label">工作日誌</div>
+      <button class="add-btn" onclick="openJournalSheet()">＋ 新增</button>
+    </div>
+    <div class="card" id="journal-list"></div>
+    <div class="sec-row">
+      <div class="sec-label">員工名冊</div>
+      <button class="add-btn" onclick="openStaffSheet()">＋ 新增員工</button>
+    </div>
+    <div class="card" id="staff-list"></div>
+  </div>
+
+  <!-- PAGE: 收入支出 -->
+  <div class="page" id="page-orders">
+    <!-- 全欄位搜尋 -->
+    <div class="search-bar">
+      <span style="font-size:16px;color:var(--gray2)">🔍</span>
+      <input type="text" id="global-search" placeholder="搜尋支出、業主、備註...關鍵字" onkeydown="if(event.key==='Enter')doGlobalSearch()">
+      <button class="add-btn" style="padding:4px 10px;font-size:12px" onclick="doGlobalSearch()">搜尋</button>
+    </div>
+    <div class="search-result" id="global-search-result">
+      <div class="search-hdr">
+        <span class="search-hdr-title" id="search-result-title"></span>
+        <button class="search-close" onclick="clearGlobalSearch()">✕</button>
+      </div>
+      <div id="search-result-body"></div>
+    </div>
+    <div class="sec-row">
+      <div class="sec-label">支出項目</div>
+      <div style="display:flex;gap:6px">
+        <button class="nav-btn nav-btn-outline" style="font-size:11px;padding:4px 10px" onclick="openCatManager()">⚙️ 管理大項</button>
+        <button class="add-btn" onclick="openVendorSheet()">＋ 新增</button>
+      </div>
+    </div>
+    <div class="card" id="vendor-list"></div>
+    <div class="sec-row">
+      <div class="sec-label">業主施工收費</div>
+      <button class="add-btn" onclick="openOwnerSheet()">＋ 新增</button>
+    </div>
+    <div class="card" id="owner-list"></div>
+    <div class="sec-row">
+      <div class="sec-label">📌 業主未收款<span id="receivable-total"></span></div>
+      <button class="add-btn" onclick="openReceivableSheet()">＋ 新增</button>
+    </div>
+    <div class="card" id="receivable-list"></div>
+  </div>
+
+  <!-- PAGE: 發票利潤 -->
+  <div class="page" id="page-finance">
+    <div id="fin-stats" class="stats-grid"></div>
+    <div class="sec-row">
+      <div class="sec-label">進項發票（廠商給我）</div>
+      <button class="add-btn" onclick="openPurchInvSheet()">＋ 新增</button>
+    </div>
+    <div class="card" id="purch-inv-list"></div>
+    <div class="sec-row">
+      <div class="sec-label">銷項發票（開給業主）</div>
+      <button class="add-btn" onclick="openSalesInvSheet()">＋ 新增</button>
+    </div>
+    <div class="card" id="sales-inv-list"></div>
+    <div class="sec-row"><div class="sec-label">發票差額 & 淨利潤</div></div>
+    <div class="card" id="fin-breakdown" style="padding:14px"></div>
+    <div class="sec-row">
+      <div class="sec-label">📧 Email 年報設定</div>
+      <button class="add-btn" onclick="openEmailSheet()">設定</button>
+    </div>
+    <div class="email-card" id="email-status"></div>
+  </div>
+
+</div>
+
+<!-- Tabbar -->
+<div class="tabbar">
+  <button class="tab-btn active" onclick="switchTab('emp',0)">
+    <div class="tab-icon">👷</div><div class="tab-label">員工薪資</div>
+  </button>
+  <button class="tab-btn" onclick="switchTab('orders',1)">
+    <div class="tab-icon">🚚</div><div class="tab-label">收入支出</div>
+  </button>
+  <button class="tab-btn" onclick="switchTab('finance',2)">
+    <div class="tab-icon">🧾</div><div class="tab-label">發票利潤</div>
+  </button>
+</div>
+</div>
+
+<!-- ═══ SHEETS ═══ -->
+
+<!-- 員工 Sheet -->
+<div class="overlay" id="staffSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="staffSheet-title">新增員工</div>
+      <button class="sheet-close" onclick="closeSheet('staffSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fg"><label class="fl">員工姓名</label><input class="fi" id="s-name" placeholder="姓名"></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">日薪（元/天）</label><input type="number" class="fi" id="s-daily" placeholder="0" inputmode="numeric"></div>
+        <div class="fg"><label class="fl">職稱</label><input class="fi" id="s-remark" placeholder="師傅、學徒..."></div>
+      </div>
+      <button class="submit-btn" id="s-submit" onclick="saveStaff()">儲存員工</button>
+      <button class="del-btn" id="s-del" style="display:none" onclick="deleteItem('staff')">刪除員工</button>
+    </div>
+  </div>
+</div>
+
+<!-- 出勤 Sheet -->
+<div class="overlay" id="attendSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="attendSheet-title">記錄出勤</div>
+      <button class="sheet-close" onclick="closeSheet('attendSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="frow">
+        <div class="fg"><label class="fl">日期</label><input type="date" class="fi" id="a-date"></div>
+        <div class="fg"><label class="fl">狀態</label>
+          <select class="fi" id="a-attend" onchange="calcSalPreview()">
+            <option value="出勤">出勤</option>
+            <option value="加班">加班</option>
+            <option value="半天">半天</option>
+            <option value="請假">請假</option>
+            <option value="缺席">缺席</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">工時（天）</label>
+        <div class="days-row">
+          <button class="day-opt" data-val="0.5" onclick="selDays(this)">0.5天</button>
+          <button class="day-opt sel" data-val="1" onclick="selDays(this)">1天</button>
+          <button class="day-opt" data-val="1.5" onclick="selDays(this)">1.5天</button>
+          <button class="day-opt" data-val="2" onclick="selDays(this)">2天</button>
+        </div>
+      </div>
+      <div class="sal-preview" id="sal-preview">
+        <div class="sal-detail" id="sal-detail"></div>
+        <div class="sal-amount" id="sal-amount">$0</div>
+      </div>
+      <div class="fg"><label class="fl">預支薪水（元）</label><input type="number" class="fi" id="a-advance" placeholder="0" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">備註</label><input class="fi" id="a-remark" placeholder="備註..."></div>
+      <button class="submit-btn" id="a-submit" onclick="saveAttend()">儲存出勤</button>
+      <button class="del-btn" id="a-del" style="display:none" onclick="deleteItem('employees')">刪除此筆出勤</button>
+    </div>
+  </div>
+</div>
+
+<!-- 員工詳細 + 月曆 Sheet -->
+<div class="overlay" id="staffDetailSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="staffDetail-title">員工明細</div>
+      <button class="sheet-close" onclick="closeSheet('staffDetailSheet')">✕</button>
+    </div>
+    <div id="staffDetail-body"></div>
+  </div>
+</div>
+
+<!-- 工作日誌 Sheet -->
+<div class="overlay" id="journalSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="journalSheet-title">工作日誌</div>
+      <button class="sheet-close" onclick="closeSheet('journalSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fg"><label class="fl">日期</label><input type="date" class="fi" id="j-date" onchange="onJournalDateChange()"></div>
+      <div class="fg"><label class="fl">施工內容</label><textarea class="fi" id="j-content" placeholder="今日施工項目..."></textarea></div>
+      <div class="fg">
+        <label class="fl">員工當日工時</label>
+        <div id="j-staff-attend"></div>
+        <div style="font-size:11px;color:var(--gray);margin-top:6px">點選天數會自動建立/更新該員工當日的出勤記錄，並計入薪資合計。選「休」則不影響出勤記錄。</div>
+      </div>
+      <div class="fg"><label class="fl">備註</label><input class="fi" id="j-remark" placeholder="備註"></div>
+      <button class="submit-btn" id="j-submit" onclick="saveJournal()">儲存日誌</button>
+      <button class="del-btn" id="j-del" style="display:none" onclick="deleteItem('journals')">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 支出 Sheet -->
+<div class="overlay" id="vendorSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="vendorSheet-title">新增支出</div>
+      <button class="sheet-close" onclick="closeSheet('vendorSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fg"><label class="fl">日期</label><input type="date" class="fi" id="v-date"></div>
+      <div class="fg">
+        <label class="fl">支出大項</label>
+        <div class="cat-row" id="v-cats"></div>
+      </div>
+      <div class="fg"><label class="fl">細項說明</label><textarea class="fi" id="v-desc" placeholder="例：水管、五金、設備名稱..."></textarea></div>
+      <div class="fg"><label class="fl">金額（元）</label><input type="number" class="fi" id="v-amount" placeholder="0" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">備註（施工地點/業主）</label><input class="fi" id="v-remark" placeholder="例：山西路餐廳"></div>
+      <button class="submit-btn" id="v-submit" onclick="saveVendor()">儲存支出</button>
+      <button class="del-btn" id="v-del" style="display:none" onclick="deleteItem('vendors')">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 大項管理 Sheet -->
+<div class="overlay" id="catSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title">管理支出大項</div>
+      <button class="sheet-close" onclick="closeSheet('catSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div id="cat-list" style="margin-bottom:14px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="new-cat-input" placeholder="輸入新大項名稱..." style="flex:1">
+        <button class="add-btn" onclick="addCat()">新增</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 業主 Sheet -->
+<div class="overlay" id="ownerSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="ownerSheet-title">業主施工收費</div>
+      <button class="sheet-close" onclick="closeSheet('ownerSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fg"><label class="fl">施工日期</label><input type="date" class="fi" id="o-date"></div>
+      <div class="fg"><label class="fl">業主名稱</label><input class="fi" id="o-owner" placeholder="業主/公司名稱"></div>
+      <div class="fg"><label class="fl">施工內容</label><textarea class="fi" id="o-desc" placeholder="施工項目說明..."></textarea></div>
+      <div class="fg"><label class="fl">收費金額（元）</label><input type="number" class="fi" id="o-amount" placeholder="0" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">備註</label><input class="fi" id="o-remark" placeholder="注意事項、補收金額..."></div>
+      <button class="submit-btn" id="o-submit" onclick="saveOwner()">儲存記錄</button>
+      <button class="del-btn" id="o-del" style="display:none" onclick="deleteItem('owners')">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 進項發票 Sheet -->
+<div class="overlay" id="purchInvSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="purchInvSheet-title">進項發票（廠商給我）</div>
+      <button class="sheet-close" onclick="closeSheet('purchInvSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="frow">
+        <div class="fg"><label class="fl">發票日期</label><input type="date" class="fi" id="pi-date"></div>
+        <div class="fg"><label class="fl">廠商名稱</label><input class="fi" id="pi-vendor" placeholder="廠商"></div>
+      </div>
+      <div class="fg"><label class="fl">發票說明</label><textarea class="fi" id="pi-desc" placeholder="說明..."></textarea></div>
+      <div class="fg"><label class="fl">發票金額（元）</label><input type="number" class="fi" id="pi-amount" placeholder="0" inputmode="numeric"></div>
+      <button class="submit-btn" id="pi-submit" onclick="savePurchInv()">儲存進項發票</button>
+      <button class="del-btn" id="pi-del" style="display:none" onclick="deleteItem('purchInvs')">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 銷項發票 Sheet -->
+<div class="overlay" id="salesInvSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="salesInvSheet-title">銷項發票（開給業主）</div>
+      <button class="sheet-close" onclick="closeSheet('salesInvSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="frow">
+        <div class="fg"><label class="fl">發票日期</label><input type="date" class="fi" id="si-date"></div>
+        <div class="fg"><label class="fl">業主名稱</label><input class="fi" id="si-owner" placeholder="業主"></div>
+      </div>
+      <div class="fg"><label class="fl">發票說明</label><textarea class="fi" id="si-desc" placeholder="說明..."></textarea></div>
+      <div class="fg"><label class="fl">發票金額（元）</label><input type="number" class="fi" id="si-amount" placeholder="0" inputmode="numeric"></div>
+      <button class="submit-btn" id="si-submit" onclick="saveSalesInv()">儲存銷項發票</button>
+      <button class="del-btn" id="si-del" style="display:none" onclick="deleteItem('salesInvs')">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 業主未收款 Sheet -->
+<div class="overlay" id="receivablesSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="receivablesSheet-title">業主未收款</div>
+      <button class="sheet-close" onclick="closeSheet('receivablesSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fg"><label class="fl">業主名稱</label><input class="fi" id="rv-owner" placeholder="業主/公司名稱"></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">未收金額（元）</label><input type="number" class="fi" id="rv-amount" placeholder="0" inputmode="numeric"></div>
+        <div class="fg"><label class="fl">登記日期</label><input type="date" class="fi" id="rv-date"></div>
+      </div>
+      <div class="fg"><label class="fl">說明</label><textarea class="fi" id="rv-desc" placeholder="工程項目、發票號碼..."></textarea></div>
+      <div class="fg"><label class="fl">備註</label><input class="fi" id="rv-remark" placeholder="催收狀況、約定收款日..."></div>
+      <button class="submit-btn" id="rv-submit" onclick="saveReceivable()">儲存記錄</button>
+      <button class="del-btn" id="rv-del" style="display:none" onclick="deleteItem('receivables')">刪除（已收款）</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Sheet -->
+<div class="overlay" id="emailSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hdr">
+      <div class="sheet-title">📧 Email 年報設定</div>
+      <button class="sheet-close" onclick="closeSheet('emailSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div style="background:var(--blue-l);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6">
+        設定後，點「📅 年報」會自動下載 Excel 並寄送到以下信箱
+      </div>
+      <div class="fg"><label class="fl">收件 Email 1</label><input type="email" class="fi" id="email1" placeholder="your@email.com"></div>
+      <div class="fg"><label class="fl">收件 Email 2（選填）</label><input type="email" class="fi" id="email2" placeholder="partner@email.com"></div>
+      <button class="submit-btn" onclick="saveEmails()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action Sheet -->
+<div class="action-overlay" id="actionOverlay">
+  <div class="action-sheet">
+    <div class="action-group">
+      <button class="action-btn" onclick="doEdit()">✏️ 編輯</button>
+      <button class="action-btn danger" onclick="confirmDelete()">🗑️ 刪除</button>
+    </div>
+    <button class="action-cancel" onclick="closeAction()">取消</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ══════════════════════════════════
+// CONFIG
+// ══════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbzXmT6WNhTalEVHYSAPBh-19K5vgEzX3utTjmOgvpvSiq4NS2z658K1UFrBj8SEw57p/exec';
+const AUTO_REFRESH_MS = 8000;     // 自動重新整理間隔（原為 30000）
+const CACHE_KEY = 'acAppDataCache'; // 本機資料快取（離線可用）
+const QUEUE_KEY = 'acAppSyncQueue'; // 離線時待同步佇列
+// 預設員工（僅在雲端 staff 工作表為空時，第一次使用時寫入雲端作為初始值）
+const DEFAULT_STAFF = [
+  { id: 'staff-cqd', name: '刺青弟', daily: 2200, remark: '' },
+  { id: 'staff-ad', name: '阿德', daily: 3000, remark: '師傅' }
+];
+
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+let currentMonth = '';
+let curStaffId = null;
+let selectedDays = 1;
+let selectedCat = '';
+let editingId = null;
+let editingType = null;
+let actionId = null;
+let actionType = null;
+let isSaving = false;
+let cache = { staff: null, months: {}, receivables: [] };
+let staffSynced = false; // 本次 session 是否已跟雲端 staff 工作表核對過
+let journalDays = {}; // 工作日誌表單中各員工當日工時暫存（staffId -> 天數）
+let vendorCats = JSON.parse(localStorage.getItem('vendorCats') || '["設備","材料","雜項","油錢"]');
+let syncQueue = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+
+// ══════════════════════════════════
+// LOCAL CACHE（離線備援用）
+// ══════════════════════════════════
+function persistCache() {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ cache, ts: Date.now() })); } catch (e) {}
+}
+function restoreCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (obj && obj.cache) { cache = obj.cache; if (!cache.receivables) cache.receivables = []; if (!cache.months) cache.months = {}; return true; }
+  } catch (e) {}
+  return false;
+}
+
+// ══════════════════════════════════
+// SYNC
+// ══════════════════════════════════
+function setSyncUI(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = msg;
+}
+function offlineMsg() {
+  return syncQueue.length ? ('📴 離線・' + syncQueue.length + ' 筆待同步') : '📴 離線模式（顯示本機資料）';
+}
+
+async function apiFetch(params) {
+  const url = API_URL + '?' + params + '&cb=' + Date.now();
+  let res;
+  try {
+    res = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'follow' });
+  } catch (e) {
+    const err = new Error('目前無法連線網路');
+    err.offline = true;
+    throw err;
+  }
+  const json = JSON.parse(await res.text());
+  if (!json.success) throw new Error(json.error || 'API error');
+  return json;
+}
+
+async function apiRead(type, month) {
+  let p = 'type=' + type;
+  if (month) p += '&month=' + month;
+  const r = await apiFetch(p);
+  return r.data || [];
+}
+
+async function apiSave(type, record) {
+  const payload = encodeURIComponent(JSON.stringify({ type, action: 'save', record }));
+  return apiFetch('payload=' + payload);
+}
+
+async function apiDelete(type, id) {
+  const payload = encodeURIComponent(JSON.stringify({ type, action: 'delete', id }));
+  return apiFetch('payload=' + payload);
+}
+
+// ──────────────────────────────────
+// 離線佇列：save/delete 失敗時排入，恢復網路後自動補送
+// ──────────────────────────────────
+function queueOp(op) {
+  syncQueue.push(op);
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(syncQueue));
+  setSyncUI('offline', offlineMsg());
+}
+async function processQueue() {
+  if (!syncQueue.length) return;
+  setSyncUI('loading', '同步離線資料中...（剩 ' + syncQueue.length + ' 筆）');
+  while (syncQueue.length) {
+    const item = syncQueue[0];
+    try {
+      const payload = encodeURIComponent(JSON.stringify(item));
+      await apiFetch('payload=' + payload);
+      syncQueue.shift();
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(syncQueue));
+      setSyncUI('loading', '同步離線資料中...（剩 ' + syncQueue.length + ' 筆）');
+    } catch (e) {
+      break; // 仍離線或發生錯誤，停止，待下次再試
+    }
+  }
+  if (!syncQueue.length) {
+    toast('✅ 離線資料已全部同步完成');
+  } else {
+    setSyncUI('offline', offlineMsg());
+  }
+}
+
+async function loadAll() {
+  if (!navigator.onLine) {
+    setSyncUI('offline', offlineMsg());
+    renderAll();
+    return;
+  }
+  setSyncUI('loading', '同步中...');
+  try {
+    const m = currentMonth;
+    const [staffRaw, emps, vendors, owners, pi, si, jrn, rv] = await Promise.all([
+      apiRead('staff'),
+      apiRead('employees', m),
+      apiRead('vendors', m),
+      apiRead('owners', m),
+      apiRead('purchInvs', m),
+      apiRead('salesInvs', m),
+      apiRead('journals', m),
+      apiRead('receivables')
+    ]);
+    if (staffRaw.length) {
+      // staff 工作表為主要來源（多裝置共用，名字/日薪以這裡為準）
+      cache.staff = staffRaw.map(s => ({ ...s, daily: Number(s.daily) || 0 }));
+    } else if (!staffSynced) {
+      // 第一次跟雲端核對：staff 工作表是空的 → 用本機現有資料（若有）或預設員工寫入雲端做為初始值
+      const seed = (cache.staff && cache.staff.length) ? cache.staff : DEFAULT_STAFF.map(s => ({ ...s }));
+      cache.staff = seed;
+      for (const s of seed) { try { await apiSave('staff', s); } catch (e) {} }
+    }
+    staffSynced = true;
+    cache.receivables = rv;
+    cache.months[m] = { employees: emps, vendors, owners, purchInvs: pi, salesInvs: si, journals: jrn };
+    persistCache();
+    if (syncQueue.length) {
+      await processQueue();
+    } else {
+      setSyncUI('ok', '已同步');
+    }
+    renderAll();
+  } catch (e) {
+    if (e.offline) {
+      setSyncUI('offline', offlineMsg());
+    } else {
+      setSyncUI('err', '同步失敗');
+      toast('⚠️ ' + e.message);
+    }
+    renderAll();
+  }
+}
+
+async function doSave(type, rec) {
+  if (isSaving) { toast('⏳ 儲存中...'); return; }
+  isSaving = true;
+  // 本機先更新（立即反映在畫面上，不等雲端回應）
+  if (type === 'staff' || type === 'receivables') {
+    const a = cache[type] || [];
+    const i = a.findIndex(x => x.id === rec.id);
+    if (i >= 0) a[i] = rec; else a.push(rec);
+    cache[type] = a;
+  } else {
+    const md = getMonth();
+    const a = md[type] || [];
+    const i = a.findIndex(x => x.id === rec.id);
+    if (i >= 0) a[i] = rec; else a.push(rec);
+    md[type] = a;
+  }
+  renderAll();
+  persistCache();
+  setSyncUI('loading', '儲存中...');
+  try {
+    await apiSave(type, rec);
+    setSyncUI('ok', '已同步');
+    toast('✅ 已儲存');
+  } catch (e) {
+    if (e.offline) {
+      queueOp({ type, action: 'save', record: rec });
+      toast('📴 離線中，已記錄在本機，恢復網路後自動同步');
+    } else {
+      setSyncUI('err', '雲端失敗');
+      toast('⚠️ 雲端儲存失敗，本機已存');
+    }
+  } finally {
+    isSaving = false;
+  }
+}
+
+async function cloudDelete(type, id) {
+  if (type === 'staff' || type === 'receivables') {
+    cache[type] = (cache[type] || []).filter(x => x.id !== id);
+  } else {
+    const md = getMonth();
+    if (md[type]) md[type] = md[type].filter(x => x.id !== id);
+  }
+  renderAll();
+  persistCache();
+  try {
+    await apiDelete(type, id);
+    setSyncUI('ok', '已同步');
+    toast('🗑️ 已刪除');
+  } catch (e) {
+    if (e.offline) {
+      queueOp({ type, action: 'delete', id });
+      toast('📴 離線中，已記錄在本機，恢復網路後自動同步');
+    } else {
+      setSyncUI('err', '雲端失敗');
+    }
+  }
+}
+
+
+// ══════════════════════════════════
+// HELPERS
+// ══════════════════════════════════
+function uid() { return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+function fmt(n) { return Number(n || 0).toLocaleString('zh-TW'); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function getMonth() {
+  if (!cache.months[currentMonth]) cache.months[currentMonth] = { employees: [], vendors: [], owners: [], purchInvs: [], salesInvs: [], journals: [] };
+  return cache.months[currentMonth];
+}
+function getStaff() { return (cache.staff && cache.staff.length) ? cache.staff : DEFAULT_STAFF; }
+function isWork(e) { return ['出勤', '加班', '半天'].includes(e.attend); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ══════════════════════════════════
+// MONTH
+// ══════════════════════════════════
+function initMonth() {
+  const n = new Date();
+  currentMonth = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0');
+  updateMonthLabel();
+}
+function updateMonthLabel() {
+  const [y, m] = currentMonth.split('-');
+  document.getElementById('monthLabel').textContent = y + '年' + parseInt(m) + '月';
+  document.getElementById('month-sub').textContent = currentMonth;
+}
+function changeMonth(dir) {
+  const [y, m] = currentMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + dir, 1);
+  currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  updateMonthLabel();
+  loadAll();
+}
+
+// ══════════════════════════════════
+// TAB / SHEET
+// ══════════════════════════════════
+function switchTab(name, idx) {
+  document.querySelectorAll('.tab-btn').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+function openSheet(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
+function closeSheet(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); editingId = null; editingType = null; }
+// type → 實際 overlay 元素 id（部分類型的命名跟 type+'Sheet' 規則不一致）
+const SHEET_ID_MAP = {
+  staff: 'staffSheet',
+  employees: 'attendSheet',
+  journals: 'journalSheet',
+  vendors: 'vendorSheet',
+  owners: 'ownerSheet',
+  purchInvs: 'purchInvSheet',
+  salesInvs: 'salesInvSheet',
+  receivables: 'receivablesSheet'
+};
+function clearFields(...ids) { ids.forEach(id => { const el = document.getElementById(id); if (el) { if (el.type === 'checkbox') el.checked = false; else if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = ''; } }); }
+
+function openAction(type, id) { actionType = type; actionId = id; document.getElementById('actionOverlay').classList.add('open'); }
+function closeAction() { document.getElementById('actionOverlay').classList.remove('open'); }
+function doEdit() {
+  const t = actionType, id = actionId; closeAction();
+  setTimeout(() => {
+    if (t === 'staff') editStaff(id);
+    else if (t === 'employees') editAttend(id);
+    else if (t === 'vendors') editVendor(id);
+    else if (t === 'owners') editOwner(id);
+    else if (t === 'purchInvs') editPurchInv(id);
+    else if (t === 'salesInvs') editSalesInv(id);
+    else if (t === 'journals') editJournal(id);
+    else if (t === 'receivables') editReceivable(id);
+  }, 250);
+}
+// 刪除「員工」或「工作日誌」時，連動處理相關出勤/薪資記錄
+function cascadeDeleteAttendance(type, id) {
+  if (type === 'staff') {
+    const emps = getMonth().employees || [];
+    emps.filter(e => e.staffId === id).forEach(e => cloudDelete('employees', e.id));
+  } else if (type === 'journals') {
+    const rec = (getMonth().journals || []).find(x => x.id === id);
+    if (rec) {
+      const emps = getMonth().employees || [];
+      let deleted = 0, skipped = 0;
+      getStaff().forEach(s => {
+        emps.filter(e => e.staffId === s.id && e.date === rec.date).forEach(existing => {
+          if (!Number(existing.advance) && !String(existing.remark || '').trim()) {
+            cloudDelete('employees', existing.id);
+            deleted++;
+          } else {
+            skipped++;
+          }
+        });
+      });
+      if (deleted) toast('🗑️ 已刪除日誌，並同步移除 ' + deleted + ' 筆出勤');
+      if (skipped) toast('ℹ️ ' + skipped + ' 筆出勤因含預支/備註，未自動刪除，請至員工明細手動處理');
+    }
+  }
+}
+function confirmDelete() {
+  const t = actionType, id = actionId;
+  const confirmMsg = t === 'journals' ? '確定刪除？這天若有透過此日誌建立的出勤/薪資記錄（且無預支或備註），會一併移除。' : '確定刪除？';
+  if (!confirm(confirmMsg)) return;
+  closeAction();
+  cascadeDeleteAttendance(t, id);
+  cloudDelete(t, id);
+}
+function deleteItem(type) {
+  const confirmMsg = type === 'journals' ? '確定刪除？這天若有透過此日誌建立的出勤/薪資記錄（且無預支或備註），會一併移除。' : '確定刪除？';
+  if (!confirm(confirmMsg)) return;
+  const id = editingId;
+  closeSheet(SHEET_ID_MAP[type] || (type + 'Sheet'));
+  cascadeDeleteAttendance(type, id);
+  cloudDelete(type, id);
+}
+
+// ══════════════════════════════════
+// STAFF
+// ══════════════════════════════════
+function openStaffSheet() {
+  editingId = null; editingType = 'staff';
+  document.getElementById('staffSheet-title').textContent = '新增員工';
+  document.getElementById('s-del').style.display = 'none';
+  clearFields('s-name', 's-daily', 's-remark');
+  openSheet('staffSheet');
+}
+function editStaff(id) {
+  const rec = getStaff().find(x => x.id === id); if (!rec) return;
+  editingId = id; editingType = 'staff';
+  document.getElementById('staffSheet-title').textContent = '編輯員工';
+  document.getElementById('s-name').value = rec.name;
+  document.getElementById('s-daily').value = rec.daily;
+  document.getElementById('s-remark').value = rec.remark || '';
+  document.getElementById('s-del').style.display = 'block';
+  openSheet('staffSheet');
+}
+function saveStaff() {
+  const name = document.getElementById('s-name').value.trim();
+  const daily = Number(document.getElementById('s-daily').value) || 0;
+  if (!name || !daily) { alert('請填寫姓名和日薪'); return; }
+  const rec = { id: editingId || uid(), name, daily, remark: document.getElementById('s-remark').value.trim() };
+  closeSheet('staffSheet');
+  doSave('staff', rec);
+}
+
+// ══════════════════════════════════
+// ATTEND
+// ══════════════════════════════════
+function openAttendSheet(staffId) {
+  curStaffId = staffId; editingId = null; editingType = 'employees';
+  const staff = getStaff().find(s => s.id === staffId); if (!staff) return;
+  document.getElementById('attendSheet-title').textContent = staff.name + ' — 記錄出勤';
+  document.getElementById('a-del').style.display = 'none';
+  clearFields('a-date', 'a-advance', 'a-remark');
+  document.getElementById('a-date').value = today();
+  document.getElementById('a-attend').value = '出勤';
+  selectedDays = 1;
+  document.querySelectorAll('.day-opt').forEach(b => b.classList.toggle('sel', b.dataset.val === '1'));
+  calcSalPreview();
+  openSheet('attendSheet');
+}
+function editAttend(id) {
+  const rec = getMonth().employees.find(x => x.id === id); if (!rec) return;
+  curStaffId = rec.staffId; editingId = id; editingType = 'employees';
+  const staff = getStaff().find(s => s.id === rec.staffId);
+  document.getElementById('attendSheet-title').textContent = (staff?.name || '') + ' — 編輯出勤';
+  document.getElementById('a-date').value = rec.date;
+  document.getElementById('a-attend').value = rec.attend;
+  selectedDays = Number(rec.days) || 1;
+  document.querySelectorAll('.day-opt').forEach(b => b.classList.toggle('sel', Number(b.dataset.val) === selectedDays));
+  document.getElementById('a-advance').value = rec.advance || '';
+  document.getElementById('a-remark').value = rec.remark || '';
+  document.getElementById('a-del').style.display = 'block';
+  calcSalPreview();
+  openSheet('attendSheet');
+}
+function selDays(btn) {
+  document.querySelectorAll('.day-opt').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedDays = Number(btn.dataset.val);
+  calcSalPreview();
+}
+function calcSalPreview() {
+  const staff = getStaff().find(s => s.id === curStaffId);
+  const attend = document.getElementById('a-attend')?.value || '出勤';
+  const prev = document.getElementById('sal-preview');
+  if (!staff || !isWork({ attend })) {
+    prev.style.background = 'var(--gray3)';
+    document.getElementById('sal-amount').textContent = '$0';
+    document.getElementById('sal-detail').textContent = '未計薪';
+    return;
+  }
+  prev.style.background = '';
+  let earn = staff.daily * selectedDays;
+  let detail = '日薪 $' + fmt(staff.daily) + ' × ' + selectedDays + '天';
+  if (attend === '加班') { earn = Math.round(earn * 1.5); detail += ' × 1.5 (加班)'; }
+  document.getElementById('sal-amount').textContent = '$' + fmt(earn);
+  document.getElementById('sal-detail').textContent = detail;
+}
+function saveAttend() {
+  const staff = getStaff().find(s => s.id === curStaffId);
+  if (!staff) { alert('員工資料錯誤'); return; }
+  const date = document.getElementById('a-date').value;
+  const attend = document.getElementById('a-attend').value;
+  if (!date) { alert('請選擇日期'); return; }
+  const work = isWork({ attend });
+  let earning = 0, earningDetail = '';
+  if (work) {
+    earning = staff.daily * selectedDays;
+    earningDetail = '日薪$' + fmt(staff.daily) + '×' + selectedDays + '天';
+    if (attend === '加班') { earning = Math.round(earning * 1.5); earningDetail += '×1.5'; }
+  }
+  const rec = { id: editingId || uid(), month: currentMonth, staffId: staff.id, name: staff.name, date, attend, days: selectedDays, earning, earningDetail, advance: Number(document.getElementById('a-advance').value) || 0, remark: document.getElementById('a-remark').value.trim() };
+  closeSheet('attendSheet');
+  doSave('employees', rec);
+}
+
+// ══════════════════════════════════
+// STAFF DETAIL + CALENDAR
+// ══════════════════════════════════
+function openStaffDetail(staffId) {
+  const staff = getStaff().find(s => s.id === staffId); if (!staff) return;
+  const emps = getMonth().employees.filter(e => e.staffId === staffId);
+  document.getElementById('staffDetail-title').textContent = staff.name;
+  renderStaffDetail(staff, emps);
+  openSheet('staffDetailSheet');
+}
+function renderStaffDetail(staff, emps) {
+  const totalEarn = emps.filter(e => isWork(e)).reduce((s, e) => s + Number(e.earning || 0), 0);
+  const totalAdv = emps.reduce((s, e) => s + Number(e.advance || 0), 0);
+  const totalDays = emps.filter(e => isWork(e)).reduce((s, e) => s + Number(e.days || 0), 0);
+  const net = totalEarn - totalAdv;
+
+  // Generate calendar
+  const [y, m] = currentMonth.split('-').map(Number);
+  const workedDates = {};
+  emps.filter(e => isWork(e)).forEach(e => { workedDates[e.date] = Number(e.days || 0); });
+
+  const firstDay = new Date(y, m - 1, 1).getDay();
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const todayStr = today();
+
+  let calCells = '<div class="cal-grid">';
+  ['日','一','二','三','四','五','六'].forEach(d => { calCells += `<div class="cal-dow">${d}</div>`; });
+  for (let i = 0; i < firstDay; i++) calCells += '<div class="cal-day other-month"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    let cls = 'cal-day';
+    if (dateStr === todayStr) cls += ' today';
+    if (workedDates[dateStr]) cls += workedDates[dateStr] < 1 ? ' worked-half' : ' worked';
+    calCells += `<div class="${cls}" onclick="openAttendFromCal('${staff.id}','${dateStr}')">${d}</div>`;
+  }
+  calCells += '</div>';
+
+  document.getElementById('staffDetail-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 14px 0">
+      <div class="stat-card"><div class="stat-label">當月薪資</div><div class="stat-value green" style="font-size:18px">$${fmt(totalEarn)}</div></div>
+      <div class="stat-card"><div class="stat-label">預支合計</div><div class="stat-value orange" style="font-size:18px">$${fmt(totalAdv)}</div></div>
+      <div class="stat-card"><div class="stat-label">應付</div><div class="stat-value ${net >= 0 ? 'blue' : 'red'}" style="font-size:18px">$${fmt(net)}</div></div>
+    </div>
+    <div class="mini-cal">
+      <div class="cal-head">
+        <div class="cal-title">📅 ${y}年${m}月 出勤 ${totalDays} 天</div>
+      </div>
+      <div style="font-size:11px;color:var(--gray);margin-bottom:8px">
+        <span style="background:var(--green-l);color:var(--green);padding:2px 8px;border-radius:6px;margin-right:6px">整天</span>
+        <span style="background:var(--orange-l);color:var(--orange);padding:2px 8px;border-radius:6px;margin-right:6px">半天</span>
+        點日期可新增出勤
+      </div>
+      ${calCells}
+    </div>
+    <div style="padding:0 14px 14px;display:flex;gap:8px">
+      <button class="add-btn" style="flex:1;padding:10px" onclick="closeSheet('staffDetailSheet');openAttendSheet('${staff.id}')">＋ 新增出勤</button>
+      <button class="nav-btn nav-btn-outline" style="flex:0.6;padding:10px 0" onclick="closeSheet('staffDetailSheet');editStaff('${staff.id}')">✏️ 編輯</button>
+    </div>
+    <div style="padding:0 14px 14px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">本月出勤記錄</div>
+      ${emps.length ? emps.sort((a, b) => a.date.localeCompare(b.date)).map(e => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="closeSheet('staffDetailSheet');editAttend('${e.id}')">
+          <div>
+            <div style="font-size:13px;font-weight:500">${e.date} <span class="badge badge-${e.attend==='加班'?'orange':e.attend==='出勤'||e.attend==='半天'?'green':'gray'}">${e.attend}</span></div>
+            <div style="font-size:11px;color:var(--gray)">${e.days}天${e.remark?' ・ '+e.remark:''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:700;color:var(--green)">$${fmt(e.earning)}</div>
+            ${e.advance > 0 ? '<div style="font-size:11px;color:var(--orange)">預支 $'+fmt(e.advance)+'</div>' : ''}
+          </div>
+        </div>`).join('') : '<div style="color:var(--gray2);font-size:13px;text-align:center;padding:12px">本月尚無出勤記錄</div>'}
+    </div>`;
+}
+function openAttendFromCal(staffId, dateStr) {
+  closeSheet('staffDetailSheet');
+  // 若該日已有出勤記錄，直接以編輯模式開啟（才會顯示刪除按鈕），避免誤建重複記錄
+  const existing = (getMonth().employees || []).find(e => e.staffId === staffId && e.date === dateStr);
+  setTimeout(() => {
+    if (existing) {
+      editAttend(existing.id);
+    } else {
+      openAttendSheet(staffId);
+      document.getElementById('a-date').value = dateStr;
+    }
+  }, 300);
+}
+
+// ══════════════════════════════════
+// JOURNAL（工作日誌，可同時帶入員工當日出勤）
+// ══════════════════════════════════
+function openJournalSheet() {
+  editingId = null; editingType = 'journals';
+  document.getElementById('journalSheet-title').textContent = '新增工作日誌';
+  document.getElementById('j-del').style.display = 'none';
+  clearFields('j-date', 'j-content', 'j-remark');
+  document.getElementById('j-date').value = today();
+  // 新增日誌：若當天已有出勤記錄則沿用，否則預設兩位員工都記 1 天
+  loadJournalDaysForDate(today());
+  openSheet('journalSheet');
+}
+function editJournal(id) {
+  const rec = getMonth().journals.find(x => x.id === id); if (!rec) return;
+  editingId = id; editingType = 'journals';
+  document.getElementById('journalSheet-title').textContent = '編輯工作日誌';
+  document.getElementById('j-date').value = rec.date;
+  document.getElementById('j-content').value = rec.content || '';
+  document.getElementById('j-remark').value = rec.remark || '';
+  document.getElementById('j-del').style.display = 'block';
+  loadJournalDaysForDate(rec.date);
+  openSheet('journalSheet');
+}
+// 日期變更時，重新帶入該日期既有的出勤天數
+function onJournalDateChange() {
+  const date = document.getElementById('j-date').value;
+  loadJournalDaysForDate(date);
+}
+// 依日期查詢各員工當天既有出勤記錄；新增日誌時若無記錄預設 1 天，編輯時預設 0（休）
+function loadJournalDaysForDate(date) {
+  journalDays = {}; journalOT = {};
+  const emps = getMonth().employees || [];
+  const isNew = !editingId;
+  getStaff().forEach(s => {
+    const found = emps.find(e => e.staffId === s.id && e.date === date);
+    journalDays[s.id] = found ? (Number(found.days) || 0) : (isNew ? 1 : 0);
+  });
+  renderJournalStaffAttend();
+}
+function renderJournalStaffAttend() {
+  const staff = getStaff();
+  document.getElementById('j-staff-attend').innerHTML = staff.length ? staff.map(s => `
+    <div class="j-staff-row">
+      <div class="j-staff-name">${s.name}</div>
+      <div class="days-row days-row-5">
+        ${[0, 0.5, 1, 1.5, 2].map(v => `<button class="day-opt day-opt-sm${journalDays[s.id] === v ? ' sel' : ''}" onclick="selJournalDays('${s.id}',${v},this)">${v === 0 ? '休' : v + '天'}</button>`).join('')}
+      </div>
+    </div>`).join('') : '<div style="color:var(--gray2);font-size:13px">尚無員工，請先到員工薪資新增</div>';
+}
+function selJournalDays(staffId, val, btn) {
+  journalDays[staffId] = val;
+  btn.parentElement.querySelectorAll('.day-opt').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+async function saveJournal() {
+  const date = document.getElementById('j-date').value;
+  const content = document.getElementById('j-content').value.trim();
+  if (!date || !content) { alert('請填寫日期和內容'); return; }
+  const rec = { id: editingId || uid(), month: currentMonth, date, content, remark: document.getElementById('j-remark').value.trim() };
+
+  // 整理需同步更新/建立/刪除的出勤記錄
+  const emps = getMonth().employees || [];
+  const attendUpdates = [];
+  const attendDeletes = [];
+  let skippedRest = 0;
+  getStaff().forEach(s => {
+    const days = journalDays[s.id] || 0;
+    const existing = emps.find(e => e.staffId === s.id && e.date === date);
+    if (days <= 0) {
+      // 選「休」：若該日該員工原本就有記錄，且沒有預支/備註等額外資訊，視為安全可一併移除
+      if (existing) {
+        if (!Number(existing.advance) && !String(existing.remark || '').trim()) {
+          attendDeletes.push(existing.id);
+        } else {
+          skippedRest++;
+        }
+      }
+      return;
+    }
+    const earning = Math.round(s.daily * days);
+    const earningDetail = '日薪$' + fmt(s.daily) + '×' + days + '天';
+    const attend = days === 0.5 ? '半天' : '出勤';
+    if (existing) {
+      attendUpdates.push({ ...existing, attend, days, earning, earningDetail });
+    } else {
+      attendUpdates.push({ id: uid(), month: currentMonth, staffId: s.id, name: s.name, date, attend, days, earning, earningDetail, advance: 0, remark: '' });
+    }
+  });
+
+  closeSheet('journalSheet');
+  await doSave('journals', rec);
+  for (const a of attendUpdates) await doSave('employees', a);
+  for (const id of attendDeletes) await cloudDelete('employees', id);
+  if (attendUpdates.length || attendDeletes.length) {
+    toast('✅ 已儲存日誌，並同步 ' + (attendUpdates.length + attendDeletes.length) + ' 筆出勤');
+  }
+  if (skippedRest) {
+    toast('ℹ️ ' + skippedRest + ' 筆出勤因含預支/備註未自動刪除，請至員工明細手動處理');
+  }
+}
+
+// ══════════════════════════════════
+// VENDOR (支出)
+// ══════════════════════════════════
+function openVendorSheet() {
+  editingId = null; editingType = 'vendors';
+  document.getElementById('vendorSheet-title').textContent = '新增支出';
+  document.getElementById('v-del').style.display = 'none';
+  clearFields('v-date', 'v-desc', 'v-amount', 'v-remark');
+  document.getElementById('v-date').value = today();
+  selectedCat = vendorCats[0] || '';
+  renderCatBtns();
+  openSheet('vendorSheet');
+}
+function editVendor(id) {
+  const rec = getMonth().vendors.find(x => x.id === id); if (!rec) return;
+  editingId = id; editingType = 'vendors';
+  document.getElementById('vendorSheet-title').textContent = '編輯支出';
+  document.getElementById('v-date').value = rec.date;
+  selectedCat = rec.cat || vendorCats[0];
+  renderCatBtns();
+  document.getElementById('v-desc').value = rec.desc || '';
+  document.getElementById('v-amount').value = rec.amount;
+  document.getElementById('v-remark').value = rec.remark || '';
+  document.getElementById('v-del').style.display = 'block';
+  openSheet('vendorSheet');
+}
+function renderCatBtns() {
+  document.getElementById('v-cats').innerHTML = vendorCats.map(c =>
+    `<button class="cat-opt${selectedCat === c ? ' sel' : ''}" onclick="pickCat('${c}',this)">${c}</button>`
+  ).join('');
+}
+function pickCat(cat, btn) {
+  selectedCat = cat;
+  document.querySelectorAll('#v-cats .cat-opt').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function saveVendor() {
+  if (!selectedCat) { alert('請選擇支出大項'); return; }
+  const rec = { id: editingId || uid(), month: currentMonth, date: document.getElementById('v-date').value, cat: selectedCat, desc: document.getElementById('v-desc').value.trim(), amount: Number(document.getElementById('v-amount').value) || 0, remark: document.getElementById('v-remark').value.trim() };
+  if (!rec.date) { alert('請填寫日期'); return; }
+  closeSheet('vendorSheet');
+  doSave('vendors', rec);
+}
+
+// Cat Manager
+function openCatManager() {
+  renderCatManagerList();
+  openSheet('catSheet');
+}
+function renderCatManagerList() {
+  document.getElementById('cat-list').innerHTML = vendorCats.map((c, i) => `
+    <div class="cat-manage-item">
+      <input class="cat-manage-input" id="cat-inp-${i}" value="${c}">
+      <button class="cat-save-btn" onclick="saveCatEdit(${i})">儲存</button>
+      <button class="cat-del-btn" onclick="delCat(${i})">刪</button>
+    </div>`).join('') || '<div style="color:var(--gray2);font-size:13px">尚無大項</div>';
+}
+function saveCatEdit(i) {
+  const val = document.getElementById('cat-inp-' + i).value.trim();
+  if (!val) { alert('名稱不能空白'); return; }
+  vendorCats[i] = val;
+  localStorage.setItem('vendorCats', JSON.stringify(vendorCats));
+  renderCatManagerList();
+  renderCatBtns();
+  renderOrders();
+  toast('✅ 已更新');
+}
+function delCat(i) {
+  if (!confirm('確定刪除「' + vendorCats[i] + '」？')) return;
+  vendorCats.splice(i, 1);
+  localStorage.setItem('vendorCats', JSON.stringify(vendorCats));
+  selectedCat = vendorCats[0] || '';
+  renderCatManagerList();
+  renderCatBtns();
+  toast('已刪除');
+}
+function addCat() {
+  const val = document.getElementById('new-cat-input').value.trim();
+  if (!val) { alert('請輸入名稱'); return; }
+  if (vendorCats.includes(val)) { alert('已有此大項'); return; }
+  vendorCats.push(val);
+  localStorage.setItem('vendorCats', JSON.stringify(vendorCats));
+  document.getElementById('new-cat-input').value = '';
+  selectedCat = val;
+  renderCatManagerList();
+  renderCatBtns();
+  toast('✅ 已新增：' + val);
+}
+
+// ══════════════════════════════════
+// OWNER
+// ══════════════════════════════════
+function openOwnerSheet() {
+  editingId = null; editingType = 'owners';
+  document.getElementById('ownerSheet-title').textContent = '業主施工收費';
+  document.getElementById('o-del').style.display = 'none';
+  clearFields('o-date', 'o-owner', 'o-desc', 'o-amount', 'o-remark');
+  document.getElementById('o-date').value = today();
+  openSheet('ownerSheet');
+}
+function editOwner(id) {
+  const rec = getMonth().owners.find(x => x.id === id); if (!rec) return;
+  editingId = id; editingType = 'owners';
+  document.getElementById('ownerSheet-title').textContent = '編輯業主施工';
+  document.getElementById('o-date').value = rec.date;
+  document.getElementById('o-owner').value = rec.owner || '';
+  document.getElementById('o-desc').value = rec.desc || '';
+  document.getElementById('o-amount').value = rec.amount;
+  document.getElementById('o-remark').value = rec.remark || '';
+  document.getElementById('o-del').style.display = 'block';
+  openSheet('ownerSheet');
+}
+function saveOwner() {
+  const owner = document.getElementById('o-owner').value.trim();
+  if (!owner) { alert('請填寫業主名稱'); return; }
+  const rec = { id: editingId || uid(), month: currentMonth, date: document.getElementById('o-date').value, owner, desc: document.getElementById('o-desc').value.trim(), amount: Number(document.getElementById('o-amount').value) || 0, remark: document.getElementById('o-remark').value.trim() };
+  closeSheet('ownerSheet');
+  doSave('owners', rec);
+}
+
+// ══════════════════════════════════
+// INVOICES
+// ══════════════════════════════════
+function openPurchInvSheet() {
+  editingId = null; editingType = 'purchInvs';
+  document.getElementById('purchInvSheet-title').textContent = '進項發票（廠商給我）';
+  document.getElementById('pi-del').style.display = 'none';
+  clearFields('pi-date', 'pi-vendor', 'pi-desc', 'pi-amount');
+  document.getElementById('pi-date').value = today();
+  openSheet('purchInvSheet');
+}
+function editPurchInv(id) {
+  const rec = getMonth().purchInvs.find(x => x.id === id); if (!rec) return;
+  editingId = id;
+  document.getElementById('purchInvSheet-title').textContent = '編輯進項發票';
+  document.getElementById('pi-date').value = rec.date;
+  document.getElementById('pi-vendor').value = rec.vendor || '';
+  document.getElementById('pi-desc').value = rec.desc || '';
+  document.getElementById('pi-amount').value = rec.amount;
+  document.getElementById('pi-del').style.display = 'block';
+  openSheet('purchInvSheet');
+}
+function savePurchInv() {
+  const rec = { id: editingId || uid(), month: currentMonth, date: document.getElementById('pi-date').value, vendor: document.getElementById('pi-vendor').value.trim(), desc: document.getElementById('pi-desc').value.trim(), amount: Number(document.getElementById('pi-amount').value) || 0 };
+  if (!rec.date || !rec.amount) { alert('請填寫日期和金額'); return; }
+  closeSheet('purchInvSheet');
+  doSave('purchInvs', rec);
+}
+
+function openSalesInvSheet() {
+  editingId = null; editingType = 'salesInvs';
+  document.getElementById('salesInvSheet-title').textContent = '銷項發票（開給業主）';
+  document.getElementById('si-del').style.display = 'none';
+  clearFields('si-date', 'si-owner', 'si-desc', 'si-amount');
+  document.getElementById('si-date').value = today();
+  openSheet('salesInvSheet');
+}
+function editSalesInv(id) {
+  const rec = getMonth().salesInvs.find(x => x.id === id); if (!rec) return;
+  editingId = id;
+  document.getElementById('salesInvSheet-title').textContent = '編輯銷項發票';
+  document.getElementById('si-date').value = rec.date;
+  document.getElementById('si-owner').value = rec.owner || '';
+  document.getElementById('si-desc').value = rec.desc || '';
+  document.getElementById('si-amount').value = rec.amount;
+  document.getElementById('si-del').style.display = 'block';
+  openSheet('salesInvSheet');
+}
+function saveSalesInv() {
+  const rec = { id: editingId || uid(), month: currentMonth, date: document.getElementById('si-date').value, owner: document.getElementById('si-owner').value.trim(), desc: document.getElementById('si-desc').value.trim(), amount: Number(document.getElementById('si-amount').value) || 0 };
+  if (!rec.date || !rec.amount) { alert('請填寫日期和金額'); return; }
+  closeSheet('salesInvSheet');
+  doSave('salesInvs', rec);
+}
+
+// ══════════════════════════════════
+// 業主未收款（RECEIVABLES，不分月份，全部顯示）
+// ══════════════════════════════════
+function openReceivableSheet() {
+  editingId = null; editingType = 'receivables';
+  document.getElementById('receivablesSheet-title').textContent = '業主未收款';
+  document.getElementById('rv-del').style.display = 'none';
+  clearFields('rv-owner', 'rv-amount', 'rv-desc', 'rv-date', 'rv-remark');
+  document.getElementById('rv-date').value = today();
+  openSheet('receivablesSheet');
+}
+function editReceivable(id) {
+  const rec = (cache.receivables || []).find(x => x.id === id); if (!rec) return;
+  editingId = id; editingType = 'receivables';
+  document.getElementById('receivablesSheet-title').textContent = '編輯未收款';
+  document.getElementById('rv-owner').value = rec.owner || '';
+  document.getElementById('rv-amount').value = rec.amount;
+  document.getElementById('rv-desc').value = rec.desc || '';
+  document.getElementById('rv-date').value = rec.date || today();
+  document.getElementById('rv-remark').value = rec.remark || '';
+  document.getElementById('rv-del').style.display = 'block';
+  openSheet('receivablesSheet');
+}
+function saveReceivable() {
+  const owner = document.getElementById('rv-owner').value.trim();
+  if (!owner) { alert('請填寫業主名稱'); return; }
+  const rec = {
+    id: editingId || uid(),
+    owner,
+    amount: Number(document.getElementById('rv-amount').value) || 0,
+    desc: document.getElementById('rv-desc').value.trim(),
+    date: document.getElementById('rv-date').value || today(),
+    remark: document.getElementById('rv-remark').value.trim()
+  };
+  closeSheet('receivablesSheet');
+  doSave('receivables', rec);
+}
+
+// ══════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════
+function doGlobalSearch() {
+  const q = document.getElementById('global-search').value.trim();
+  const resultEl = document.getElementById('global-search-result');
+  if (!q) { resultEl.style.display = 'none'; return; }
+  const hl = txt => txt ? String(txt).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi'), m => `<mark>${m}</mark>`) : '';
+  let results = [];
+  // 搜尋所有月份
+  Object.entries(cache.months).forEach(([month, md]) => {
+    (md.vendors || []).forEach(v => {
+      const hay = [v.cat, v.desc, v.remark].join(' ');
+      if (hay.toLowerCase().includes(q.toLowerCase()))
+        results.push({ type: 'vendor', data: v, month });
+    });
+    (md.owners || []).forEach(o => {
+      const hay = [o.owner, o.desc, o.remark].join(' ');
+      if (hay.toLowerCase().includes(q.toLowerCase()))
+        results.push({ type: 'owner', data: o, month });
+    });
+    (md.journals || []).forEach(j => {
+      const hay = [j.content, j.remark].join(' ');
+      if (hay.toLowerCase().includes(q.toLowerCase()))
+        results.push({ type: 'journal', data: j, month });
+    });
+  });
+  results.sort((a, b) => b.data.date?.localeCompare(a.data.date || '') || 0);
+  document.getElementById('search-result-title').innerHTML = `「${q}」找到 ${results.length} 筆`;
+  const totalAmt = results.reduce((s, r) => s + Number(r.data.amount || 0), 0);
+  document.getElementById('search-result-body').innerHTML = results.length ?
+    results.map(r => {
+      if (r.type === 'vendor') return `<div class="list-item">
+        <div class="item-icon ic-orange">💰</div>
+        <div class="item-body">
+          <div class="item-title"><span class="badge badge-orange">${r.data.cat}</span> ${hl(r.data.desc) || ''}</div>
+          <div class="item-sub">${r.data.date} ${r.month}${r.data.remark ? ' ・ ' + hl(r.data.remark) : ''}</div>
+        </div>
+        <div class="item-amount amt-red">$${fmt(r.data.amount)}</div>
+      </div>`;
+      if (r.type === 'owner') return `<div class="list-item">
+        <div class="item-icon ic-green">🏢</div>
+        <div class="item-body">
+          <div class="item-title">${hl(r.data.owner)}</div>
+          <div class="item-sub">${r.data.date} ${r.month} ・ ${hl(r.data.desc) || ''}${r.data.remark ? ' ・ ' + hl(r.data.remark) : ''}</div>
+        </div>
+        <div class="item-amount amt-green">$${fmt(r.data.amount)}</div>
+      </div>`;
+      return `<div class="list-item">
+        <div class="item-icon ic-blue">📋</div>
+        <div class="item-body">
+          <div class="item-title">${r.data.date}</div>
+          <div class="item-sub">${hl(r.data.content)}</div>
+        </div>
+      </div>`;
+    }).join('') + (totalAmt ? `<div style="padding:10px 14px;text-align:right;font-size:13px;font-weight:700;border-top:1px solid var(--border)">合計 $${fmt(totalAmt)}</div>` : '') :
+    '<div class="empty"><div class="empty-text">查無相關記錄</div></div>';
+  resultEl.style.display = 'block';
+}
+function clearGlobalSearch() {
+  document.getElementById('global-search').value = '';
+  document.getElementById('global-search-result').style.display = 'none';
+}
+
+// ══════════════════════════════════
+// EMAIL
+// ══════════════════════════════════
+function openEmailSheet() {
+  const emails = JSON.parse(localStorage.getItem('reportEmails') || '[]');
+  document.getElementById('email1').value = emails[0] || '';
+  document.getElementById('email2').value = emails[1] || '';
+  openSheet('emailSheet');
+}
+function saveEmails() {
+  const e1 = document.getElementById('email1').value.trim();
+  const e2 = document.getElementById('email2').value.trim();
+  localStorage.setItem('reportEmails', JSON.stringify([e1, e2].filter(Boolean)));
+  closeSheet('emailSheet');
+  renderFinance();
+  toast('✅ Email 已儲存');
+}
+
+// ══════════════════════════════════
+// RENDER
+// ══════════════════════════════════
+function renderAll() { renderEmp(); renderOrders(); renderFinance(); }
+
+function renderEmp() {
+  const staff = getStaff();
+  const emps = getMonth().employees || [];
+  const totalEarn = emps.filter(isWork).reduce((s, e) => s + Number(e.earning || 0), 0);
+  const totalAdv = emps.reduce((s, e) => s + Number(e.advance || 0), 0);
+  const totalDays = emps.filter(isWork).reduce((s, e) => s + Number(e.days || 0), 0);
+  const net = totalEarn - totalAdv;
+
+  document.getElementById('emp-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">出勤天數</div><div class="stat-value blue">${totalDays}天</div></div>
+    <div class="stat-card"><div class="stat-label">薪資總額</div><div class="stat-value">${'$' + fmt(totalEarn)}</div></div>
+    <div class="stat-card"><div class="stat-label">預支合計</div><div class="stat-value orange">${'$' + fmt(totalAdv)}</div></div>
+    <div class="stat-card"><div class="stat-label">應付款</div><div class="stat-value ${net >= 0 ? 'green' : 'red'}">${'$' + fmt(net)}</div></div>`;
+
+  document.getElementById('staff-list').innerHTML = staff.length ? staff.map(s => {
+    const recs = emps.filter(e => e.staffId === s.id && isWork(e));
+    const mEarn = recs.reduce((sum, e) => sum + Number(e.earning || 0), 0);
+    const mDays = recs.reduce((sum, e) => sum + Number(e.days || 0), 0);
+    return `<div class="list-item" onclick="openStaffDetail('${s.id}')">
+      <div class="item-icon ic-blue">👷</div>
+      <div class="item-body">
+        <div class="item-title">${s.name}${s.remark ? ' <span class="badge badge-gray">' + s.remark + '</span>' : ''}</div>
+        <div class="item-sub">日薪 $${fmt(s.daily)}　本月 ${mDays} 天</div>
+      </div>
+      <div class="item-right">
+        <div class="item-amount amt-green">$${fmt(mEarn)}</div>
+        <span class="badge badge-blue">點看明細 ›</span>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">點右上角新增員工</div></div>';
+
+  const journals = [...(getMonth().journals || [])].sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById('journal-list').innerHTML = journals.length ? journals.map(j => `
+    <div class="list-item" onclick="openAction('journals','${j.id}')">
+      <div class="item-icon ic-blue">📋</div>
+      <div class="item-body">
+        <div class="item-title">${j.date}</div>
+        <div class="item-sub">${j.content}</div>
+      </div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">尚無工作日誌</div></div>';
+}
+
+function renderOrders() {
+  const vendors = [...(getMonth().vendors || [])].sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById('vendor-list').innerHTML = vendors.length ? vendors.map(v => `
+    <div class="list-item" onclick="openAction('vendors','${v.id}')">
+      <div class="item-icon ic-orange">💰</div>
+      <div class="item-body">
+        <div class="item-title"><span class="badge badge-orange">${v.cat}</span> ${v.desc || ''}</div>
+        <div class="item-sub">${v.date}${v.remark ? ' ・ ' + v.remark : ''}</div>
+      </div>
+      <div class="item-right"><div class="item-amount amt-red">$${fmt(v.amount)}</div></div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">尚無支出記錄</div></div>';
+
+  const owners = [...(getMonth().owners || [])].sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById('owner-list').innerHTML = owners.length ? owners.map(o => `
+    <div class="list-item" onclick="openAction('owners','${o.id}')">
+      <div class="item-icon ic-green">🏢</div>
+      <div class="item-body">
+        <div class="item-title">${o.owner}</div>
+        <div class="item-sub">${o.date} ・ ${o.desc || ''}${o.remark ? ' ・ ' + o.remark : ''}</div>
+      </div>
+      <div class="item-right"><div class="item-amount amt-green">$${fmt(o.amount)}</div></div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">尚無施工記錄</div></div>';
+
+  const receivables = [...(cache.receivables || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const totalReceivable = receivables.reduce((s, r) => s + Number(r.amount || 0), 0);
+  document.getElementById('receivable-total').textContent = totalReceivable > 0 ? ('　總額 $' + fmt(totalReceivable)) : '';
+  document.getElementById('receivable-list').innerHTML = receivables.length ? receivables.map(r => `
+    <div class="list-item" onclick="openAction('receivables','${r.id}')">
+      <div class="item-icon ic-red">📌</div>
+      <div class="item-body">
+        <div class="item-title">${r.owner}</div>
+        <div class="item-sub">${r.date || ''}${r.desc ? ' ・ ' + r.desc : ''}${r.remark ? ' ・ ' + r.remark : ''}</div>
+      </div>
+      <div class="item-right"><div class="item-amount amt-red">$${fmt(r.amount)}</div></div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">📌</div><div class="empty-text">目前無未收款項，點右上角新增</div></div>';
+}
+
+function renderFinance() {
+  const md = getMonth();
+  const pi = md.purchInvs || [], si = md.salesInvs || [];
+  const emps = md.employees || [];
+  const totalPurch = pi.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const totalSales = si.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const totalSalary = emps.filter(isWork).reduce((s, e) => s + Number(e.earning || 0), 0);
+  const diff = totalSales - totalPurch;
+  const profit = totalSales - totalPurch - totalSalary;
+
+  document.getElementById('fin-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">銷項發票合計</div><div class="stat-value green">$${fmt(totalSales)}</div></div>
+    <div class="stat-card"><div class="stat-label">進項發票合計</div><div class="stat-value red">$${fmt(totalPurch)}</div></div>
+    <div class="stat-card"><div class="stat-label">發票差額</div><div class="stat-value ${diff >= 0 ? 'green' : 'red'}">${diff >= 0 ? '+' : ''}$${fmt(diff)}</div></div>
+    <div class="stat-card"><div class="stat-label">當月淨利潤</div><div class="stat-value ${profit >= 0 ? 'green' : 'red'}">${profit >= 0 ? '+' : ''}$${fmt(profit)}</div></div>`;
+
+  document.getElementById('purch-inv-list').innerHTML = pi.length ? pi.map(i => `
+    <div class="list-item" onclick="openAction('purchInvs','${i.id}')">
+      <div class="item-icon ic-red">🧾</div>
+      <div class="item-body"><div class="item-title">${i.vendor || '廠商'} ${i.desc || ''}</div><div class="item-sub">${i.date}</div></div>
+      <div class="item-amount amt-red">$${fmt(i.amount)}</div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">尚無進項發票</div></div>';
+
+  document.getElementById('sales-inv-list').innerHTML = si.length ? si.map(i => `
+    <div class="list-item" onclick="openAction('salesInvs','${i.id}')">
+      <div class="item-icon ic-green">🧾</div>
+      <div class="item-body"><div class="item-title">${i.owner || '業主'} ${i.desc || ''}</div><div class="item-sub">${i.date}</div></div>
+      <div class="item-amount amt-green">$${fmt(i.amount)}</div>
+    </div>`).join('') : '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">尚無銷項發票</div></div>';
+
+  document.getElementById('fin-breakdown').innerHTML = `
+    <div class="fin-row"><span class="fin-label">銷項（開給業主）</span><span style="color:var(--green)">$${fmt(totalSales)}</span></div>
+    <div class="fin-row"><span class="fin-label">進項（廠商給我）</span><span style="color:var(--red)">$${fmt(totalPurch)}</span></div>
+    <div class="fin-row"><span class="fin-label">員工薪資</span><span style="color:var(--orange)">$${fmt(totalSalary)}</span></div>
+    <div class="fin-row total"><span>發票差額（銷－進）</span><span style="color:${diff>=0?'var(--green)':'var(--red)'};font-size:20px">${diff>=0?'+':''}$${fmt(diff)}</span></div>
+    <div class="fin-alert ${diff < 0 ? 'red' : 'green'}">${diff < 0 ? '⚠️ 需補開進項發票 $' + fmt(Math.abs(diff)) : '✅ 發票差額正常'}</div>
+    <div class="fin-row total" style="margin-top:10px;border-top:2px solid var(--border);padding-top:10px"><span>💹 當月淨利潤</span><span style="color:${profit>=0?'var(--green)':'var(--red)'};font-size:22px">${profit>=0?'+':''}$${fmt(profit)}</span></div>
+    <div style="font-size:11px;color:var(--gray);margin-top:4px">銷項 $${fmt(totalSales)} - 進項 $${fmt(totalPurch)} - 薪資 $${fmt(totalSalary)}</div>`;
+
+  const emails = JSON.parse(localStorage.getItem('reportEmails') || '[]').filter(Boolean);
+  document.getElementById('email-status').innerHTML = emails.length ?
+    `<div style="font-size:12px;color:var(--gray);margin-bottom:6px">年報寄送至：</div>${emails.map(e => `<div style="font-size:14px;font-weight:600;color:var(--blue)">✉️ ${e}</div>`).join('')}` :
+    `<div style="font-size:13px;color:var(--gray2)">尚未設定 Email，點右上角「設定」</div>`;
+}
+
+// ══════════════════════════════════
+// EXPORT
+// ══════════════════════════════════
+function exportMonth() {
+  if (typeof XLSX === 'undefined') { alert('匯出套件載入中，請稍後再試'); return; }
+  const md = getMonth();
+  const wb = XLSX.utils.book_new();
+  const e = md.employees || [], v = md.vendors || [], o = md.owners || [],
+        pi = md.purchInvs || [], si = md.salesInvs || [], j = md.journals || [];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','員工','狀態','天數','薪資','預支','備註'],...e.map(x=>[x.date,x.name,x.attend,x.days,x.earning,x.advance,x.remark])]), '員工薪資');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','大項','細項','金額','備註'],...v.map(x=>[x.date,x.cat,x.desc,x.amount,x.remark])]), '支出項目');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','業主','施工內容','收費','備註'],...o.map(x=>[x.date,x.owner,x.desc,x.amount,x.remark])]), '業主施工');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','廠商','說明','金額'],...pi.map(x=>[x.date,x.vendor,x.desc,x.amount])]), '進項發票');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','業主','說明','金額'],...si.map(x=>[x.date,x.owner,x.desc,x.amount])]), '銷項發票');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['日期','施工內容','備註'],...j.map(x=>[x.date,x.content,x.remark])]), '工作日誌');
+  const rv = cache.receivables || [];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['登記日期','業主','說明','未收金額','備註'],...rv.map(x=>[x.date,x.owner,x.desc,x.amount,x.remark])]), '業主未收款');
+  XLSX.writeFile(wb, '空調工程_' + currentMonth + '.xlsx');
+  toast('📊 匯出成功');
+}
+
+function exportYear() {
+  if (typeof XLSX === 'undefined') { alert('匯出套件載入中，請稍後再試'); return; }
+  const year = currentMonth.slice(0, 4);
+  const months = Array.from({ length: 12 }, (_, i) => year + '-' + String(i + 1).padStart(2, '0'));
+  const wb = XLSX.utils.book_new();
+  const sum = [['月份','銷項發票','進項發票','發票差額','員工薪資','當月淨利潤']];
+  months.forEach(m => {
+    const md = cache.months[m] || {};
+    const sales = (md.salesInvs || []).reduce((s, i) => s + Number(i.amount || 0), 0);
+    const purch = (md.purchInvs || []).reduce((s, i) => s + Number(i.amount || 0), 0);
+    const salary = (md.employees || []).filter(isWork).reduce((s, e) => s + Number(e.earning || 0), 0);
+    sum.push([m, sales, purch, sales - purch, salary, sales - purch - salary]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), year + '年度總覽');
+  const allE=[['月份','日期','員工','狀態','天數','薪資','預支']], allV=[['月份','日期','大項','細項','金額','備註']], allO=[['月份','日期','業主','施工內容','收費','備註']];
+  const allPI=[['月份','日期','廠商','說明','金額']], allSI=[['月份','日期','業主','說明','金額']], allJ=[['月份','日期','施工內容']];
+  months.forEach(m => {
+    const md = cache.months[m] || {};
+    (md.employees||[]).forEach(e=>allE.push([m,e.date,e.name,e.attend,e.days,e.earning,e.advance]));
+    (md.vendors||[]).forEach(v=>allV.push([m,v.date,v.cat,v.desc,v.amount,v.remark]));
+    (md.owners||[]).forEach(o=>allO.push([m,o.date,o.owner,o.desc,o.amount,o.remark]));
+    (md.purchInvs||[]).forEach(i=>allPI.push([m,i.date,i.vendor,i.desc,i.amount]));
+    (md.salesInvs||[]).forEach(i=>allSI.push([m,i.date,i.owner,i.desc,i.amount]));
+    (md.journals||[]).forEach(j=>allJ.push([m,j.date,j.content]));
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allE),'全年員工薪資');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allV),'全年支出項目');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allO),'全年業主施工');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allPI),'全年進項發票');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allSI),'全年銷項發票');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(allJ),'全年工作日誌');
+  const rv = cache.receivables || [];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['登記日期','業主','說明','未收金額','備註'],...rv.map(x=>[x.date,x.owner,x.desc,x.amount,x.remark])]), '業主未收款（目前）');
+  const fname = '空調工程_' + year + '年度報表.xlsx';
+  XLSX.writeFile(wb, fname);
+  toast('📅 年報已匯出');
+  // 寄 Email
+  const emails = JSON.parse(localStorage.getItem('reportEmails') || '[]').filter(Boolean);
+  if (emails.length) {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const payload = encodeURIComponent(JSON.stringify({ type: 'sendEmail', emails, year, filename: fname, filedata: wbout }));
+    fetch(API_URL + '?payload=' + payload + '&cb=' + Date.now(), { method: 'GET', mode: 'cors', credentials: 'omit' })
+      .then(r => r.json())
+      .then(r => { if (r.success) toast('📧 年報已寄至 ' + emails.join('、')); else toast('⚠️ 寄送失敗'); })
+      .catch(() => toast('⚠️ Email 寄送失敗'));
+  }
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+function manualRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.style.transform = 'rotate(360deg)';
+  btn.style.transition = 'transform 0.5s';
+  setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 500);
+  cache.months[currentMonth] = null;
+  loadAll();
+}
+
+// 自動重新整理（預設每 8 秒，原為 30 秒）
+setInterval(() => {
+  if (!navigator.onLine || isSaving) return;
+  if (syncQueue.length) { processQueue(); return; }
+  cache.months[currentMonth] = null;
+  loadAll();
+}, AUTO_REFRESH_MS);
+
+// 網路恢復時：立即補送離線佇列並重新整理
+window.addEventListener('online', () => {
+  setSyncUI('loading', '恢復連線，同步中...');
+  processQueue().then(() => {
+    cache.months[currentMonth] = null;
+    loadAll();
+  });
+});
+// 離線時：更新指示燈
+window.addEventListener('offline', () => {
+  setSyncUI('offline', offlineMsg());
+});
+// App 從背景切回前景時：立即重新整理（適合訊號斷續的環境）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && navigator.onLine && !isSaving) {
+    if (syncQueue.length) processQueue();
+    cache.months[currentMonth] = null;
+    loadAll();
+  }
+});
+
+initMonth();
+// 先還原上次的本機快取（若有），離線時也能立即看到資料；
+// 若無快取，getStaff() 會先以 DEFAULT_STAFF 顯示，等 loadAll() 完成後改為雲端 staff 工作表的資料
+restoreCache();
+renderAll();
+loadAll();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
